@@ -1,0 +1,5 @@
+{
+  "watch": ["src"],
+  "ext": "cpp",
+  "exec": "node -e 'console.clear()' && g++ src/main.cpp && ./a.out"
+}
