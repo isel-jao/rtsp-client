@@ -1,5 +1,5 @@
 {
   "watch": ["src"],
   "ext": "cpp",
-  "exec": "node -e 'console.clear()' && g++  src/main.cpp `pkg-config --cflags --libs opencv4` -lboost_system -lpthread && ./a.out"
+  "exec": "clear && g++  src/main.cpp `pkg-config --cflags --libs opencv4` -lboost_system -lpthread -I src/include && ./a.out"
 }

@@ -2,7 +2,7 @@ FROM debian:latest
 
 # Install dependencies
 RUN apt-get update -y
-RUN apt-get install libopencv-dev ffmpeg libboost-all-dev g++ -y
+RUN apt-get install libopencv-dev ffmpeg libboost-all-dev libasio-dev g++ -y
 
 # Set the working directory
 WORKDIR /app
