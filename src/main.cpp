@@ -1,26 +1,101 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <boost/asio.hpp>
-
+#include "crow_all.h"
 using namespace cv;
 using namespace std;
 using namespace boost::asio;
 
 // Define the RTSP URL and port as constants
-const string CAMERA_RTSP_URL = "rtsp://197.230.172.128:553/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream";
+// const string CAMERA_RTSP_URL = "rtsp://197.230.172.128:553/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream";
+const string CAMERA_RTSP_URL = "rtsp://192.168.11.201:554/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream";
+cv::Mat sharedFrame;
+mutex frameMutex;
+condition_variable frameAvailable;
 const int port = 3000;
 const int frameRate = 30;
 
-// Shared frame and synchronization
-Mat sharedFrame;
-mutex frameMutex;
-condition_variable frameAvailable;
+class Camera
+{
+private:
+    string _rtspUrl;
+    static std::map<std::string, Camera> _instances;
 
-// Function to continuously read frames from the camera
+public:
+    Camera()
+    {
+        std::cout << "Default constructor called" << std::endl;
+    }
+    Camera(string rtspUrl) : _rtspUrl(rtspUrl)
+    {
+        std::cout << "Parameterized constructor called: " << rtspUrl << std::endl;
+    }
+    Camera(const Camera &camera)
+    {
+        if (this != &camera)
+            _rtspUrl = camera._rtspUrl;
+    }
+    Camera &operator=(const Camera &camera)
+    {
+        std::cout << "Assignment operator called" << std::endl;
+        if (this != &camera)
+            _rtspUrl = camera._rtspUrl;
+        return *this;
+    }
+
+public:
+    friend Camera getInstance(std::string rtspUrl)
+    {
+        //     if (_instances.find(CAMERA_RTSP_URL) == _instances.end())
+        //     {
+        //         _instances[CAMERA_RTSP_URL] = Camera(CAMERA_RTSP_URL);
+        //         std::cout << "Camera instance created: " << CAMERA_RTSP_URL << std::endl;
+        //     }
+        //     else
+        //     {
+        //         std::cout << "Camera instance already exists: " << CAMERA_RTSP_URL << std::endl;
+        //     }
+        //     return _instances[CAMERA_RTSP_URL];
+        // if (_instances.find(rtspUrl) == _instances.end())
+        // {
+        //     _instances[rtspUrl] = Camera(rtspUrl);
+        //     std::cout << "Camera instance created: " << rtspUrl << std::endl;
+        // }
+        // else
+        // {
+        //     std::cout << "Camera instance already exists: " << rtspUrl << std::endl;
+        // }
+        // return _instances[rtspUrl];
+        Camera camera = _instances[rtspUrl];
+        return camera;
+    }
+    ~Camera()
+    {
+        std::cout << "Camera instance destroyed: " << _rtspUrl << std::endl;
+    }
+};
+
+string getCodec(const cv::VideoCapture *cap)
+{
+    // Get codec information
+    int fourcc = static_cast<int>(cap->get(cv::CAP_PROP_FOURCC));
+
+    // Convert FOURCC to readable format
+    char fourcc_str[5];
+    for (int i = 0; i < 4; i++)
+    {
+        fourcc_str[i] = fourcc & 0xFF;
+        fourcc >>= 8;
+    }
+    fourcc_str[4] = '\0';
+    return fourcc_str;
+}
+
 void captureFrames(VideoCapture &cap)
 {
     while (true)
@@ -43,109 +118,54 @@ void captureFrames(VideoCapture &cap)
         // Notify waiting threads that a new frame is available
         frameAvailable.notify_all();
 
-        // this_thread::sleep_for(std::chrono::milliseconds(33)); // ~30 FPS
-        this_thread::sleep_for(std::chrono::milliseconds(1000 / frameRate));
+        this_thread::sleep_for(std::chrono::milliseconds(33)); // ~30 FPS
     }
 }
 
-// Function to handle a single client connection
-void handleClient(ip::tcp::socket socket)
+int main(int argc, char **argv)
 {
-    try
-    {
-        // Get client info
-        string clientAddress = socket.remote_endpoint().address().to_string();
-        cout << "New client connected: " << clientAddress << endl;
-
-        // HTTP Header
-        string header =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n\r\n";
-        socket.send(buffer(header));
-
-        vector<uchar> buf;
-        vector<int> params = {IMWRITE_JPEG_QUALITY, 90};
-
-        while (true)
-        {
-            Mat frame;
-
-            // Wait for a new frame
-            {
-                unique_lock<mutex> lock(frameMutex);
-                frameAvailable.wait(lock, []
-                                    { return !sharedFrame.empty(); });
-                sharedFrame.copyTo(frame);
-            }
-
-            // Encode frame as JPEG
-            imencode(".jpg", frame, buf, params);
-
-            // Write frame boundary and data
-            string boundary = "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + to_string(buf.size()) + "\r\n\r\n";
-            socket.send(buffer(boundary));
-            socket.send(buffer(reinterpret_cast<const char *>(buf.data()), buf.size()));
-            socket.send(buffer("\r\n"));
-
-            this_thread::sleep_for(std::chrono::milliseconds(33)); // ~30 FPS
-        }
-    }
-    catch (std::exception &e)
-    {
-        cerr << "Client connection error: " << e.what() << endl;
-    }
-
-    // Log client disconnection
-    cout << "Client disconnected." << endl;
-}
-
-// Function to stream MJPEG to multiple browsers
-void streamToMultipleBrowsers(VideoCapture &cap)
-{
-    try
-    {
-        io_service io_service;
-        ip::tcp::acceptor acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), port));
-        cout << "MJPEG Stream Server started at http://localhost:" << port << endl;
-
-        for (;;)
-        {
-            ip::tcp::socket socket(io_service);
-            acceptor.accept(socket); // Wait for a new client connection
-
-            // Get client info
-            string clientAddress = socket.remote_endpoint().address().to_string();
-            cout << "New client connected: " << clientAddress << endl;
-
-            // Start a new thread to handle this client
-            thread clientThread(handleClient, move(socket));
-            clientThread.detach(); // Detach the thread to allow it to run independently
-        }
-    }
-    catch (std::exception &e)
-    {
-        cerr << "Server error: " << e.what() << endl;
-    }
-}
-
-int main()
-{
-    VideoCapture cap(CAMERA_RTSP_URL);
+    // Open RTSP stream
+    cv::VideoCapture cap;
+    cap.open(CAMERA_RTSP_URL);
 
     if (!cap.isOpened())
     {
-        cerr << "Error: Cannot open RTSP stream from " << CAMERA_RTSP_URL << endl;
+        std::cout << "Error opening RTSP stream" << std::endl;
         return -1;
     }
 
+    // Get codec information
+    std::string codec = getCodec(&cap);
+    std::cout << "RTSP stream opened successfully" << std::endl;
+    std::cout << "Codec: " << codec << std::endl;
+    cap.release();
+
     // Start the frame capture in a separate thread
-    thread captureThread(captureFrames, ref(cap));
+    // captureFrames(cap); // This will block the main thread
+    // thread captureThread(captureFrames, ref(cap));
 
-    // Start the server to stream to multiple browsers
-    streamToMultipleBrowsers(cap);
+    crow::SimpleApp app;
 
-    // Wait for the capture thread to finish
-    captureThread.join();
+    CROW_ROUTE(app, "/")
+    ([]
+     {
+        crow::response res;
+        res.add_header("Content-Type", "application/json");
+        res.body = "{\"message\": \"Welcome to the RTSP stream server\"}";
+        return res; });
 
+    CROW_ROUTE(app, "/<string>/<string>").methods("GET"_method)([](string host, string credentials)
+                                                                {
+        
+        std::string rtspUrl = "rtsp://" + host +"/" +  credentials;
+        crow::response res;
+        // Camera camera = Camera::getInstance();
+        res.add_header("Content-Type", "application/json");
+        res.body = "{\"rtsp\": \"" + rtspUrl + "\"}";
+        return res; });
+
+    app.port(port).multithreaded().run();
+
+    // captureThread.join();
     return 0;
 }
