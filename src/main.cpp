@@ -20,63 +20,25 @@ condition_variable frameAvailable;
 const int port = 3000;
 const int frameRate = 30;
 
+class Camera;
+
 class Camera
 {
 private:
     string _rtspUrl;
-    static std::map<std::string, Camera> _instances;
+
+    static std::map<string, Camera *> _instances;
+
+    Camera(string rtspUrl) : _rtspUrl(rtspUrl) {}
 
 public:
-    Camera()
+    static Camera *getInstance(string rtspUrl)
     {
-        std::cout << "Default constructor called" << std::endl;
-    }
-    Camera(string rtspUrl) : _rtspUrl(rtspUrl)
-    {
-        std::cout << "Parameterized constructor called: " << rtspUrl << std::endl;
-    }
-    Camera(const Camera &camera)
-    {
-        if (this != &camera)
-            _rtspUrl = camera._rtspUrl;
-    }
-    Camera &operator=(const Camera &camera)
-    {
-        std::cout << "Assignment operator called" << std::endl;
-        if (this != &camera)
-            _rtspUrl = camera._rtspUrl;
-        return *this;
-    }
-
-public:
-    friend Camera getInstance(std::string rtspUrl)
-    {
-        //     if (_instances.find(CAMERA_RTSP_URL) == _instances.end())
-        //     {
-        //         _instances[CAMERA_RTSP_URL] = Camera(CAMERA_RTSP_URL);
-        //         std::cout << "Camera instance created: " << CAMERA_RTSP_URL << std::endl;
-        //     }
-        //     else
-        //     {
-        //         std::cout << "Camera instance already exists: " << CAMERA_RTSP_URL << std::endl;
-        //     }
-        //     return _instances[CAMERA_RTSP_URL];
-        // if (_instances.find(rtspUrl) == _instances.end())
-        // {
-        //     _instances[rtspUrl] = Camera(rtspUrl);
-        //     std::cout << "Camera instance created: " << rtspUrl << std::endl;
-        // }
-        // else
-        // {
-        //     std::cout << "Camera instance already exists: " << rtspUrl << std::endl;
-        // }
-        // return _instances[rtspUrl];
-        Camera camera = _instances[rtspUrl];
-        return camera;
-    }
-    ~Camera()
-    {
-        std::cout << "Camera instance destroyed: " << _rtspUrl << std::endl;
+        if (_instances.find(rtspUrl) == _instances.end())
+        {
+            _instances[rtspUrl] = new Camera(rtspUrl);
+        }
+        return _instances[rtspUrl];
     }
 };
 
@@ -159,7 +121,7 @@ int main(int argc, char **argv)
         
         std::string rtspUrl = "rtsp://" + host +"/" +  credentials;
         crow::response res;
-        // Camera camera = Camera::getInstance();
+        Camera *camera = Camera::getInstance(rtspUrl);
         res.add_header("Content-Type", "application/json");
         res.body = "{\"rtsp\": \"" + rtspUrl + "\"}";
         return res; });
