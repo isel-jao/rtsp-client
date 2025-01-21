@@ -59,19 +59,19 @@ export default function DevPage() {
         <h1>Dev Page</h1>
         <div className="mt-12 grid grid-cols-2 gap-12">
           <MJPEGStream
-            url="http://localhost:3000"
+            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
             className="aspect-video rounded-lg border"
           />
           <MJPEGStream
-            url="http://localhost:3000"
+            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
             className="aspect-video rounded-lg border"
           />
           <MJPEGStream
-            url="http://localhost:3000"
+            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
             className="aspect-video rounded-lg border"
           />
           <MJPEGStream
-            url="http://localhost:3000"
+            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
             className="aspect-video rounded-lg border"
           />
         </div>
