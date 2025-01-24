@@ -60,14 +60,11 @@ int Camera::captureFrames()
         // Lock the mutex and update the shared frame
         {
             std::lock_guard<std::mutex> lock(frameMutex);
-            resize(frame, frame, Size(frameWidth, frameHeight));
             frame.copyTo(sharedFrame);
         }
 
         // Notify waiting threads that a new frame is available
         frameAvailable.notify_all();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(frameRate)); // ~30 FPS
     }
     cap.release();
     return 0;
@@ -99,6 +96,16 @@ void Camera::handleClient(ip::tcp::socket socket)
                 sharedFrame.copyTo(frame);
             }
 
+            // get frame width and height
+            const double frameWidth = frame.cols;
+            const double frameHeight = frame.rows;
+            const double aspectRatio = frameWidth / frameHeight;
+            const double newHeight = 480;
+            const double newWidth = newHeight * aspectRatio;
+
+            // Resize frame
+            resize(frame, frame, Size(newWidth, newHeight), 0, 0, INTER_LINEAR);
+
             // Encode frame as JPEG
             imencode(".jpg", frame, buf, params);
 
@@ -108,7 +115,7 @@ void Camera::handleClient(ip::tcp::socket socket)
             socket.send(buffer(reinterpret_cast<const char *>(buf.data()), buf.size()));
             socket.send(buffer("\r\n"));
 
-            this_thread::sleep_for(std::chrono::milliseconds(33)); // ~30 FPS
+            this_thread::sleep_for(std::chrono::milliseconds(frameIntervale));
         }
     }
     catch (std::exception &e)

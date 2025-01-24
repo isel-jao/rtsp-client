@@ -15,10 +15,9 @@ private:
     std::mutex frameMutex;
     std::condition_variable frameAvailable;
     cv::VideoCapture cap;
-    const int frameRate = 30;
-    const int frameWidth = 640;
-    const int frameHeight = 480;
+    const int frameIntervale = 80;
     const int jpegQuality = 50;
+    std::vector<Client *> clients;
 
 private:
     Camera();
@@ -30,8 +29,13 @@ public:
     static std::map<std::string, Camera *> instances;
     static std::mutex mutex;
     static Camera *getInstance(const std::string &rtspUrl);
+    static void releaseInstance(const std::string &rtspUrl);
     int captureFrames();
     void handleClient(ip::tcp::socket socket);
+    < template <typename T>
+        void addClient(ClientType clientType, T socket);
+    void addClient(ClientType clientType, ip::tcp::socket socket);
+    friend class Client;
 };
 
 #endif

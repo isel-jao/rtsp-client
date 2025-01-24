@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["fourcc", "RTSP"],
+  "cSpell.words": ["fourcc", "RTSP", "WEBRTC"],
   "files.associations": {
     "*.tsx": "typescriptreact",
     "cctype": "cpp",
@@ -78,6 +78,7 @@
     "typeindex": "cpp",
     "typeinfo": "cpp",
     "variant": "cpp",
-    "*.ipp": "cpp"
+    "*.ipp": "cpp",
+    "regex": "cpp"
   }
 }

@@ -8,7 +8,7 @@ import React, { useEffect, useRef } from "react";
 
 //     if (videoElement) {
 //       // Set the source of the video element to the MJPEG stream URL
-//       videoElement.src = 'http://localhost:3000'; // Assuming the server is running locally
+//       videoElement.src = 'https://39b7qsb0-3000.uks1.devtunnels.ms'; // Assuming the server is running locally
 //     }
 
 //     return () => {
@@ -32,7 +32,6 @@ interface MJPEGStreamProps extends React.HTMLProps<HTMLImageElement> {
 
 const MJPEGStream = ({ url, ...props }: MJPEGStreamProps) => {
   const videoRef = useRef<HTMLImageElement>(null);
-  const [state, setState] = React.useState("loading");
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -57,23 +56,23 @@ export default function DevPage() {
     <main>
       <div className="container py-container">
         <h1>Dev Page</h1>
-        <div className="mt-12 grid grid-cols-2 gap-12">
+        <div className="mt-12 grid grid-cols-1 gap-12">
           <MJPEGStream
-            url="http://localhost:3000/192.168.11.201:554/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
+            url="https://39b7qsb0-3000.uks1.devtunnels.ms/service:Next2899100*@197.230.172.128:553/stream2"
             className="aspect-video rounded-lg border"
           />
           <MJPEGStream
-            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
+            url="https://39b7qsb0-3000.uks1.devtunnels.ms/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
+            className="aspect-video rounded-lg border"
+          />
+          {/* <MJPEGStream
+            url="https://39b7qsb0-3000.uks1.devtunnels.ms/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
             className="aspect-video rounded-lg border"
           />
           <MJPEGStream
-            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
+            url="https://39b7qsb0-3000.uks1.devtunnels.ms/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
             className="aspect-video rounded-lg border"
-          />
-          <MJPEGStream
-            url="http://localhost:3000/197.230.172.128:555/user=admin_password=VoX4wnHy_channel=1_stream=0.sdp?real_stream"
-            className="aspect-video rounded-lg border"
-          />
+          /> */}
         </div>
       </div>
     </main>
