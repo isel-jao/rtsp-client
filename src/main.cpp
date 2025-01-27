@@ -14,7 +14,7 @@ extern "C"
 #include <libavutil/opt.h>
 }
 
-#include "cpp-httplib/httplib.h"
+#include "httplib.h"
 
 class RTSPtoHLS
 {
@@ -30,7 +30,6 @@ public:
               const std::string &playlist = "playlist.m3u8")
         : rtsp_url(url), output_dir(out_dir), playlist_name(playlist), running(false)
     {
-
         // Create output directory if it doesn't exist
         std::filesystem::create_directories(output_dir);
     }
@@ -66,11 +65,11 @@ private:
 
         try
         {
-            // Create input options dictionary
+            // Create input options dictionary with reduced buffering
             AVDictionary *opts = nullptr;
-            av_dict_set(&opts, "analyzeduration", "10000000", 0); // 10 seconds
-            av_dict_set(&opts, "probesize", "10000000", 0);       // 10MB
-            av_dict_set(&opts, "rtsp_transport", "tcp", 0);       // Force TCP
+            av_dict_set(&opts, "analyzeduration", "1000000", 0); // 1 second
+            av_dict_set(&opts, "probesize", "1000000", 0);       // 1MB
+            av_dict_set(&opts, "rtsp_transport", "tcp", 0);      // Force TCP
 
             // Open RTSP input
             if (avformat_open_input(&input_ctx, rtsp_url.c_str(), nullptr, &opts) < 0)
@@ -93,10 +92,10 @@ private:
                 throw std::runtime_error("Could not create output context");
             }
 
-            // Set HLS specific options
-            av_opt_set(output_ctx->priv_data, "hls_time", "2", 0);      // Reduced segment duration
-            av_opt_set(output_ctx->priv_data, "hls_list_size", "5", 0); // Keep more segments
-            av_opt_set(output_ctx->priv_data, "hls_flags", "delete_segments+append_list", 0);
+            // Set HLS options
+            av_opt_set(output_ctx->priv_data, "hls_time", "1", 0);                            // 1-second segments
+            av_opt_set(output_ctx->priv_data, "hls_list_size", "3", 0);                       // Keep 3 segments in the playlist
+            av_opt_set(output_ctx->priv_data, "hls_flags", "delete_segments+append_list", 0); // Supported flags
             av_opt_set(output_ctx->priv_data, "hls_segment_type", "mpegts", 0);
             av_opt_set(output_ctx->priv_data, "hls_segment_filename",
                        (output_dir + "/segment_%03d.ts").c_str(), 0);
@@ -115,6 +114,7 @@ private:
                 {
                     throw std::runtime_error("Failed to copy codec params");
                 }
+                out_stream->time_base = in_stream->time_base; // Copy time base
             }
 
             // Open output file
@@ -139,6 +139,14 @@ private:
                 if (av_read_frame(input_ctx, &packet) < 0)
                 {
                     break;
+                }
+
+                // Fix timestamps if missing
+                if (packet.pts == AV_NOPTS_VALUE)
+                {
+                    static int64_t pts = 0;
+                    packet.pts = pts++;
+                    packet.dts = packet.pts;
                 }
 
                 av_write_frame(output_ctx, &packet);

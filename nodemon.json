@@ -1,5 +1,5 @@
 {
   "watch": ["src"],
   "ext": "cpp",
-  "exec": "node -e 'console.clear()' && g++ -I src/include  src/*.cpp `pkg-config --cflags --libs opencv4` -lboost_system -lpthread && ./a.out"
+  "exec": "clear && g++ -std=c++17 -I src/include -o program src/main.cpp -lavcodec -lavformat -lavutil -lpthread && ./program 'rtsp://service:Next2899100*@197.230.172.128:553/stream2'"
 }
